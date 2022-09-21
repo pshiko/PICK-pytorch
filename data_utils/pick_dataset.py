@@ -17,7 +17,7 @@ import pandas as pd
 
 from . import documents
 from .documents import Document
-from utils.class_utils import keys_vocab_cls, iob_labels_vocab_cls, entities_vocab_cls
+from utils.class_utils import keys_vocab, iob_labels_vocab, entities_vocab
 
 
 class PICKDataset(Dataset):
@@ -190,7 +190,7 @@ class BatchCollateFn(object):
         text_segments_padded_list = [F.pad(torch.LongTensor(x.text_segments[0]),
                                            (0, max_transcript_len - x.transcript_len,
                                             0, max_boxes_num_batch - x.boxes_num),
-                                           value=keys_vocab_cls.stoi['<pad>'])
+                                           value=keys_vocab['<pad>'])
                                      for i, x in enumerate(batch_list)]
         text_segments_batch_tensor = torch.stack(text_segments_padded_list, dim=0)
 
@@ -212,7 +212,7 @@ class BatchCollateFn(object):
             iob_tags_label_padded_list = [F.pad(torch.LongTensor(x.iob_tags_label),
                                                 (0, max_transcript_len - x.transcript_len,
                                                  0, max_boxes_num_batch - x.boxes_num),
-                                                value=iob_labels_vocab_cls.stoi['<pad>'])
+                                                value=iob_labels_vocab['<pad>'])
                                           for i, x in enumerate(batch_list)]
             iob_tags_label_batch_tensor = torch.stack(iob_tags_label_padded_list, dim=0)
 
