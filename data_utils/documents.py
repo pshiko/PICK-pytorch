@@ -10,7 +10,6 @@ import json
 import string
 from pathlib import Path
 
-from torchtext.data import Field, RawField
 import numpy as np
 
 from utils.entities_list import Entities_list
@@ -165,17 +164,17 @@ class Document:
             for i in range(boxes_num):
                 mask[i, :texts_len[i]] = 1
 
-            self.whole_image = RawField().preprocess(image)
-            self.text_segments = TextSegmentsField.preprocess(text_segments)  # (text, texts_len)
-            self.boxes_coordinate = RawField().preprocess(resized_boxes)
-            self.relation_features = RawField().preprocess(relation_features)
-            self.mask = RawField().preprocess(mask)
-            self.boxes_num = RawField().preprocess(boxes_num)
-            self.transcript_len = RawField().preprocess(transcript_len)  # max transcript len of current document
+            self.whole_image = image
+            self.text_segments = text_segments  # (text, texts_len)
+            self.boxes_coordinate = resized_boxes
+            self.relation_features = relation_features
+            self.mask = mask
+            self.boxes_num = boxes_num
+            self.transcript_len = transcript_len  # max transcript len of current document
             if self.training:
-                self.iob_tags_label = IOBTagsField.preprocess(iob_tags_label)
+                self.iob_tags_label = iob_tags_label
             else:
-                self.image_index = RawField().preprocess(image_index)
+                self.image_index = image_index
 
         except Exception as e:
             raise RuntimeError('Error occurs in image {}: {}'.format(boxes_and_transcripts_file.stem, e.args))
