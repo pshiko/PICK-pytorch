@@ -11,19 +11,27 @@ import string
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from utils.entities_list import Entities_list
-from utils.class_utils import keys_vocab_cls, iob_labels_vocab_cls, entities_vocab_cls
+import torchtext.transforms as T
+from utils.class_utils import keys_vocab, iob_labels_vocab, entities_vocab
 
 MAX_BOXES_NUM = 70  # limit max number boxes of every documents
 MAX_TRANSCRIPT_LEN = 50  # limit max length text of every box
 
 # text string label converter
-TextSegmentsField = Field(sequential=True, use_vocab=True, include_lengths=True, batch_first=True)
-TextSegmentsField.vocab = keys_vocab_cls
+text_segments_process = T.Sequential(
+    T.VocabTransform(keys_vocab),
+    T.Truncate(MAX_TRANSCRIPT_LEN),
+    T.ToTensor(padding_value=keys_vocab['<pad>'])
+)
 # iob string label converter
-IOBTagsField = Field(sequential=True, is_target=True, use_vocab=True, batch_first=True)
-IOBTagsField.vocab = iob_labels_vocab_cls
+iob_tags_process = T.Sequential(
+    T.VocabTransform(iob_labels_vocab),
+    T.Truncate(MAX_TRANSCRIPT_LEN),
+    T.ToTensor(padding_value=keys_vocab['<pad>'])
+)
 
 
 class Document:
@@ -152,13 +160,15 @@ class Document:
                                                                                           transcripts[:boxes_num],
                                                                                           entities, ['address'])
 
-                iob_tags_label = IOBTagsField.process(iob_tags_label)[:, :transcript_len].numpy()
-                box_entity_types = [entities_vocab_cls.stoi[t] for t in box_entity_types[:boxes_num]]
+                iob_tags_label = iob_tags_process(iob_tags_label).numpy()
+                box_entity_types = [entities_vocab[t] for t in box_entity_types[:boxes_num]]
 
             # texts shape is (num_texts, max_texts_len), texts_len shape is (num_texts,)
-            texts, texts_len = TextSegmentsField.process(text_segments)
+            texts = text_segments_process(text_segments).numpy()
             texts = texts[:, :transcript_len].numpy()
-            texts_len = np.clip(texts_len.numpy(), 0, transcript_len)
+            texts_len = torch.sum(
+                texts != keys_vocab['<pad>'], axis=1, dtype=torch.int32,
+            )
             text_segments = (texts, texts_len)
 
             for i in range(boxes_num):
