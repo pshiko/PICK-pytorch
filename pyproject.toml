@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "pick-pytorch"
+version = "0.1.0"
+description = ""
+authors = ["pshiko <pshiko.sparrow@gmail.com>"]
+readme = "README.md"
+packages = [{include = "pick_pytorch"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+torch = { version = "1.12.1", source="torch"}
+torchaudio = { version = "0.12.1", source="torch"}
+torchvision = { version = "0.13.1", source="torch"}
+torchtext = "^0.13.1"
+opencv-python = "^4.6.0.66"
+tqdm = "^4.64.1"
+pandas = "^1.5.0"
+overrides = "^6.2.0"
+tabulate = "^0.8.10"
+
+[[tool.poetry.source]]
+name = "torch"
+url = "https://download.pytorch.org/whl/cu116"
+secondary = true
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

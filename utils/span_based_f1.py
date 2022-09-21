@@ -8,10 +8,10 @@ from collections import defaultdict
 import torch
 
 from torchtext.vocab import Vocab
-from allennlp.common.checks import ConfigurationError
-from allennlp.nn.util import get_lengths_from_binary_sequence_mask
-from allennlp.training.metrics.metric import Metric
-from allennlp.data.dataset_readers.dataset_utils.span_utils import (
+from allennlp_port.metric import Metric
+from allennlp_port.util import get_lengths_from_binary_sequence_mask
+from allennlp_port.checks import ConfigurationError
+from allennlp_port.span_utils import (
     bio_tags_to_spans,
     bioul_tags_to_spans,
     iob1_tags_to_spans,
