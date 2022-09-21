@@ -164,11 +164,12 @@ class Document:
                 box_entity_types = [entities_vocab[t] for t in box_entity_types[:boxes_num]]
 
             # texts shape is (num_texts, max_texts_len), texts_len shape is (num_texts,)
-            texts = text_segments_process(text_segments).numpy()
-            texts = texts[:, :transcript_len].numpy()
+            texts = text_segments_process(text_segments)
             texts_len = torch.sum(
-                texts != keys_vocab['<pad>'], axis=1, dtype=torch.int32,
+                texts != keys_vocab['<pad>'], axis=1, dtype=torch.int64,
             )
+            texts = texts[:, :transcript_len].numpy()
+            texts_len = np.clip(texts_len.numpy(), 0, transcript_len)
             text_segments = (texts, texts_len)
 
             for i in range(boxes_num):
