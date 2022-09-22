@@ -10,21 +10,28 @@ import json
 import string
 from pathlib import Path
 
-from torchtext.data import Field, RawField
 import numpy as np
+import torch
 
 from utils.entities_list import Entities_list
-from utils.class_utils import keys_vocab_cls, iob_labels_vocab_cls, entities_vocab_cls
+import torchtext.transforms as T
+from utils.class_utils import keys_vocab, iob_labels_vocab, entities_vocab
 
 MAX_BOXES_NUM = 70  # limit max number boxes of every documents
 MAX_TRANSCRIPT_LEN = 50  # limit max length text of every box
 
 # text string label converter
-TextSegmentsField = Field(sequential=True, use_vocab=True, include_lengths=True, batch_first=True)
-TextSegmentsField.vocab = keys_vocab_cls
+text_segments_process = T.Sequential(
+    T.VocabTransform(keys_vocab),
+    T.Truncate(MAX_TRANSCRIPT_LEN),
+    T.ToTensor(padding_value=keys_vocab['<pad>'])
+)
 # iob string label converter
-IOBTagsField = Field(sequential=True, is_target=True, use_vocab=True, batch_first=True)
-IOBTagsField.vocab = iob_labels_vocab_cls
+iob_tags_process = T.Sequential(
+    T.VocabTransform(iob_labels_vocab),
+    T.Truncate(MAX_TRANSCRIPT_LEN),
+    T.ToTensor(padding_value=keys_vocab['<pad>'])
+)
 
 
 class Document:
@@ -153,11 +160,14 @@ class Document:
                                                                                           transcripts[:boxes_num],
                                                                                           entities, ['address'])
 
-                iob_tags_label = IOBTagsField.process(iob_tags_label)[:, :transcript_len].numpy()
-                box_entity_types = [entities_vocab_cls.stoi[t] for t in box_entity_types[:boxes_num]]
+                iob_tags_label = iob_tags_process(iob_tags_label).numpy()
+                box_entity_types = [entities_vocab[t] for t in box_entity_types[:boxes_num]]
 
             # texts shape is (num_texts, max_texts_len), texts_len shape is (num_texts,)
-            texts, texts_len = TextSegmentsField.process(text_segments)
+            texts = text_segments_process(text_segments)
+            texts_len = torch.sum(
+                texts != keys_vocab['<pad>'], axis=1, dtype=torch.int64,
+            )
             texts = texts[:, :transcript_len].numpy()
             texts_len = np.clip(texts_len.numpy(), 0, transcript_len)
             text_segments = (texts, texts_len)
@@ -165,17 +175,17 @@ class Document:
             for i in range(boxes_num):
                 mask[i, :texts_len[i]] = 1
 
-            self.whole_image = RawField().preprocess(image)
-            self.text_segments = TextSegmentsField.preprocess(text_segments)  # (text, texts_len)
-            self.boxes_coordinate = RawField().preprocess(resized_boxes)
-            self.relation_features = RawField().preprocess(relation_features)
-            self.mask = RawField().preprocess(mask)
-            self.boxes_num = RawField().preprocess(boxes_num)
-            self.transcript_len = RawField().preprocess(transcript_len)  # max transcript len of current document
+            self.whole_image = image
+            self.text_segments = text_segments  # (text, texts_len)
+            self.boxes_coordinate = resized_boxes
+            self.relation_features = relation_features
+            self.mask = mask
+            self.boxes_num = boxes_num
+            self.transcript_len = transcript_len  # max transcript len of current document
             if self.training:
-                self.iob_tags_label = IOBTagsField.preprocess(iob_tags_label)
+                self.iob_tags_label = iob_tags_label
             else:
-                self.image_index = RawField().preprocess(image_index)
+                self.image_index = image_index
 
         except Exception as e:
             raise RuntimeError('Error occurs in image {}: {}'.format(boxes_and_transcripts_file.stem, e.args))

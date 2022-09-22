@@ -6,8 +6,8 @@ from typing import List, Tuple, Dict
 
 import torch
 
-from allennlp.common.checks import ConfigurationError
-import allennlp.nn.util as util
+from allennlp_port.checks import ConfigurationError
+from allennlp_port.viterbi_decode import viterbi_decode
 
 '''
 Copy-paste from allennlp.modules.conditional_random_field 
@@ -246,7 +246,7 @@ class ConditionalRandomField(torch.nn.Module):
 
             # In valid positions (mask == 1) we want to take the logsumexp over the current_tag dimension
             # of ``inner``. Otherwise (mask == 0) we want to retain the previous alpha.
-            alpha = (util.logsumexp(inner, 1) * mask[i].view(batch_size, 1) +
+            alpha = (torch.logsumexp(inner, 1) * mask[i].view(batch_size, 1) +
                      alpha * (1 - mask[i]).view(batch_size, 1))
 
         # Every sequence needs to end with a transition to the stop_tag.
@@ -256,7 +256,7 @@ class ConditionalRandomField(torch.nn.Module):
             stops = alpha
 
         # Finally we log_sum_exp along the num_tags dim, result is (batch_size,)
-        return util.logsumexp(stops)
+        return torch.logsumexp(stops, -1)
 
     def _joint_likelihood(self,
                           logits: torch.Tensor,
@@ -399,7 +399,7 @@ class ConditionalRandomField(torch.nn.Module):
             tag_sequence[sequence_length + 1, end_tag] = 0.
 
             # We pass the tags and the transitions to ``viterbi_decode``.
-            viterbi_path, viterbi_score = util.viterbi_decode(tag_sequence[:(sequence_length + 2)], transitions)
+            viterbi_path, viterbi_score = viterbi_decode(tag_sequence[:(sequence_length + 2)], transitions)
             # Get rid of START and END sentinels and append.
             viterbi_path = viterbi_path[1:-1]
             best_paths.append((viterbi_path, viterbi_score.item()))

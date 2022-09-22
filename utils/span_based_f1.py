@@ -8,10 +8,10 @@ from collections import defaultdict
 import torch
 
 from torchtext.vocab import Vocab
-from allennlp.common.checks import ConfigurationError
-from allennlp.nn.util import get_lengths_from_binary_sequence_mask
-from allennlp.training.metrics.metric import Metric
-from allennlp.data.dataset_readers.dataset_utils.span_utils import (
+from allennlp_port.metric import Metric
+from allennlp_port.util import get_lengths_from_binary_sequence_mask
+from allennlp_port.checks import ConfigurationError
+from allennlp_port.span_utils import (
     bio_tags_to_spans,
     bioul_tags_to_spans,
     iob1_tags_to_spans,
@@ -104,9 +104,9 @@ class SpanBasedF1Measure(Metric):
         self._total: Dict[str, int] = defaultdict(int)
 
         self.mapped_class = []
-        for k, v in self._label_vocabulary.stoi.items():
+        for k, v in self._label_vocabulary.get_stoi().items():
             if k == '<pad>' or k == '<unk>':
-                self.mapped_class.append(self._label_vocabulary.stoi['O'])
+                self.mapped_class.append(self._label_vocabulary['O'])
             else:
                 self.mapped_class.append(v)
 
@@ -169,9 +169,9 @@ class SpanBasedF1Measure(Metric):
                 # completely padded. These contribute nothing, so we skip these rows.
                 continue
 
-            predicted_string_labels = [self._label_vocabulary.itos[int(label_id)]
+            predicted_string_labels = [self._label_vocabulary.get_itos()[int(label_id)]
                                        for label_id in sequence_prediction[:length].tolist()]
-            gold_string_labels = [self._label_vocabulary.itos[int(label_id)]
+            gold_string_labels = [self._label_vocabulary.get_itos()[int(label_id)]
                                   for label_id in sequence_gold_label[:length].tolist()]
 
             # print('pred_str: {} \n gold_str: {}'.format(predicted_string_labels, gold_string_labels))

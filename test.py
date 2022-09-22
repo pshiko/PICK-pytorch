@@ -8,7 +8,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 from torch.utils.data.dataloader import DataLoader
-from allennlp.data.dataset_readers.dataset_utils.span_utils import bio_tags_to_spans
+from allennlp_port.span_utils import bio_tags_to_spans
 
 from parse_config import ConfigParser
 import model.pick as pick_arch_module

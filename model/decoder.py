@@ -10,7 +10,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from .crf import ConditionalRandomField
-from utils.class_utils import keys_vocab_cls, iob_labels_vocab_cls
+from utils.class_utils import keys_vocab, iob_labels_vocab
 from data_utils import documents
 
 logger = logging.getLogger('PICK')
@@ -94,11 +94,12 @@ class BiLSTMLayer(nn.Module):
 
         # B*N, T, hidden_size
         x_seq, sorted_lengths, invert_order, h_0, c_0 = self.sort_tensor(x_seq, lenghts, initial[0], initial[0])
-        packed_x = nn.utils.rnn.pack_padded_sequence(x_seq, lengths=sorted_lengths, batch_first=True)
+        # Ref. https://github.com/pytorch/pytorch/issues/43227
+        packed_x = nn.utils.rnn.pack_padded_sequence(x_seq, lengths=sorted_lengths.cpu(), batch_first=True)
         self.lstm.flatten_parameters()
         output, _ = self.lstm(packed_x)
         output, _ = nn.utils.rnn.pad_packed_sequence(output, batch_first=True,
-                                                     padding_value=keys_vocab_cls.stoi['<pad>'])
+                                                     padding_value=keys_vocab['<pad>'])
         # total_length=documents.MAX_BOXES_NUM * documents.MAX_TRANSCRIPT_LEN
         output = output[invert_order]
         logits = self.mlp(output)
@@ -154,7 +155,7 @@ class UnionLayer(nn.Module):
         if self.training:
             # (B, N*T)
             tags = tags.reshape(B, N * T)
-            new_tag = torch.full_like(tags, iob_labels_vocab_cls.stoi['<pad>'], device=x.device)
+            new_tag = torch.full_like(tags, iob_labels_vocab['<pad>'], device=x.device)
             new_tag = new_tag[:, :max_doc_seq_len]
 
         # merge all non-padding value together in document-level
